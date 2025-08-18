@@ -8,24 +8,22 @@ const Chat = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
 
-  // User from sessionStorage
   const storedUser = sessionStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
   const [chats, setChats] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Fetch chats once on mount
+  // Fetch chats once
   useEffect(() => {
     if (!user) return;
 
     const fetchChats = async () => {
       try {
-        const fetchedChats = await getChats(user);
-        setChats(fetchedChats || []);
+        await getChats(user, setChats);
       } catch (err) {
         console.error("Failed to fetch chats:", err);
       }
@@ -34,45 +32,46 @@ const Chat = () => {
     fetchChats();
   }, [user]);
 
-  // Update active chat and messages when chatId or chats change
+  // Set active chat and messages based on chatId
   useEffect(() => {
     if (!chatId || chats.length === 0) return;
 
-    const currentChat = chats.find((c) => String(c.localid) === String(chatId));
-    if (!currentChat) return;
+    const currentChat = chats.filter((c) => String(c.localid) === String(chatId));
 
-    // Only update activeChat if it has changed
-    setActiveChat((prev) => {
-      if (prev?.localid !== chatId) return { title: currentChat.title, localid: chatId };
-      return prev;
-    });
+    if (currentChat.length > 0) {
+      // Only update if chat actually changed
+      setActiveChat((prev) => {
+        if (!prev || prev.localid !== chatId) {
+          return { title: currentChat[0].title, localid: chatId };
+        }
+        return prev;
+      });
 
-    // Only update messages if IDs changed
-    const newMessages = currentChat.messages?.map((msg) => ({
-      id: msg.id,
-      content: msg.message,
-      sender: msg.usertype,
-      reply: msg.reply || null,
-      timestamp: msg.message_time,
-    })) || [];
+      const newMessages = currentChat.map((msg) => ({
+        id: msg.id,
+        content: msg.message,
+        sender: msg.usertype,
+        reply: msg.reply || null,
+        timestamp: msg.message_time,
+      }));
 
-    setMessages((prev) => {
-      const prevIds = prev.map((m) => m.id).join(",");
-      const newIds = newMessages.map((m) => m.id).join(",");
-      if (prevIds !== newIds) return newMessages;
-      return prev;
-    });
+      setMessages((prev) => {
+        const prevIds = prev.map((m) => m.id).join(",");
+        const newIds = newMessages.map((m) => m.id).join(",");
+        if (prevIds !== newIds) return newMessages;
+        return prev;
+      });
+    }
   }, [chatId, chats]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !chatId) return;
+    if (!newMessage.trim() || !user) return;
 
     const tempId = Date.now().toString();
     const newMsg = {
@@ -105,7 +104,6 @@ const Chat = () => {
       }
     } catch (err) {
       console.error("Failed to send message:", err);
-      // Remove optimistic message if failed
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     }
   };
@@ -123,15 +121,12 @@ const Chat = () => {
       {/* Chat Header */}
       <div className="bg-dark-800/50 backdrop-blur-xl border-b border-gray-700/50 px-6 py-4">
         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate("/chats")}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={() => navigate("/chats")} className="text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
             <h2 className="text-white font-semibold">
-              {activeChat?.title || `Chat ${activeChat?.localid || "New"}`}
+              {activeChat?.title ? activeChat.title : activeChat?.localid ? `Chat ${activeChat.localid}` : "New Chat"}
             </h2>
             <div className="flex items-center space-x-2 text-sm text-gray-400">
               <div className="flex items-center space-x-1">
@@ -157,23 +152,14 @@ const Chat = () => {
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-2">
             <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                  msg.sender === "user"
-                    ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white"
-                    : "bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50"
-                }`}
-              >
+              <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                msg.sender === "user"
+                  ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white"
+                  : "bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50"
+              }`}>
                 <p className="text-sm leading-relaxed">{msg.content}</p>
-                <p
-                  className={`text-xs mt-2 ${
-                    msg.sender === "user" ? "text-primary-100" : "text-gray-400"
-                  }`}
-                >
-                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <p className={`text-xs mt-2 ${msg.sender === "user" ? "text-primary-100" : "text-gray-400"}`}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
             </div>
@@ -183,10 +169,7 @@ const Chat = () => {
                 <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50">
                   <p className="text-sm leading-relaxed">{msg.reply}</p>
                   <p className="text-xs mt-2 text-gray-400">
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>
