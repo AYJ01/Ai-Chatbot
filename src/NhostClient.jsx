@@ -1,7 +1,9 @@
-import { NhostClient } from '@nhost/react'
+import { NhostClient } from '@nhost/react';
 
 const nhost = new NhostClient({
-  backendUrl: "https://iygtokbiutpcogmoptms.ap-south-1.nhost.run"
-})
+  subdomain: "iygtokbiutpcogmoptms",
+  region: "ap-south-1",
+  backendUrl: 'https://iygtokbiutpcogmoptms.ap-south-1.nhost.app'
+});
 
-export default nhost
+export default nhost;
