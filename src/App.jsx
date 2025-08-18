@@ -27,10 +27,10 @@ function App() {
           }
         >
           {/* Redirect index to chats */}
-          <Route index element={<Navigate to="/layout/chats" replace />} />
-          <Route path="/layout/chats" element={<ChatList />} />
-          <Route path="/layout/chat/:chatId" element={<Chat />} />
-          <Route path="/layout/profile" element={<Profile />} />
+          <Route index element={<Navigate to="/chats" replace />} />
+          <Route path="/chats" element={<ChatList />} />
+          <Route path="/chat/:chatId" element={<Chat />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
 
         {/* Catch-all → 404 */}
