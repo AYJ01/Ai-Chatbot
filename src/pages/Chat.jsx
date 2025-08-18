@@ -8,23 +8,24 @@ const Chat = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
 
-  // Get user from sessionStorage for persistence across refresh
+  // User from sessionStorage
   const storedUser = sessionStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
   const [chats, setChats] = useState([]);
-  const [messages, setMessages] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Fetch chats from server
+  // Fetch chats once on mount
   useEffect(() => {
     if (!user) return;
 
     const fetchChats = async () => {
       try {
-        await getChats(user, setChats);
+        const fetchedChats = await getChats(user);
+        setChats(fetchedChats || []);
       } catch (err) {
         console.error("Failed to fetch chats:", err);
       }
@@ -33,26 +34,34 @@ const Chat = () => {
     fetchChats();
   }, [user]);
 
-  // Set active chat and messages based on chatId
+  // Update active chat and messages when chatId or chats change
   useEffect(() => {
     if (!chatId || chats.length === 0) return;
 
-    const currentChat = chats.filter(
-      (c) => String(c.localid) === String(chatId)
-    );
+    const currentChat = chats.find((c) => String(c.localid) === String(chatId));
+    if (!currentChat) return;
 
-    if (currentChat.length > 0) {
-      setActiveChat({ title: currentChat[0].title, localid: chatId });
-      setMessages(
-        currentChat.map((msg) => ({
-          id: msg.id,
-          content: msg.message,
-          sender: msg.usertype,
-          reply: msg.reply || null,
-          timestamp: msg.message_time,
-        }))
-      );
-    }
+    // Only update activeChat if it has changed
+    setActiveChat((prev) => {
+      if (prev?.localid !== chatId) return { title: currentChat.title, localid: chatId };
+      return prev;
+    });
+
+    // Only update messages if IDs changed
+    const newMessages = currentChat.messages?.map((msg) => ({
+      id: msg.id,
+      content: msg.message,
+      sender: msg.usertype,
+      reply: msg.reply || null,
+      timestamp: msg.message_time,
+    })) || [];
+
+    setMessages((prev) => {
+      const prevIds = prev.map((m) => m.id).join(",");
+      const newIds = newMessages.map((m) => m.id).join(",");
+      if (prevIds !== newIds) return newMessages;
+      return prev;
+    });
   }, [chatId, chats]);
 
   // Auto-scroll to bottom on new messages
@@ -60,10 +69,10 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send message handler
+  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !chatId) return;
 
     const tempId = Date.now().toString();
     const newMsg = {
@@ -96,11 +105,11 @@ const Chat = () => {
       }
     } catch (err) {
       console.error("Failed to send message:", err);
+      // Remove optimistic message if failed
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     }
   };
 
-  // If user is missing
   if (!user) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -108,8 +117,6 @@ const Chat = () => {
       </div>
     );
   }
-
-
 
   return (
     <div className="h-full flex flex-col">
@@ -124,12 +131,7 @@ const Chat = () => {
           </button>
           <div className="flex-1">
             <h2 className="text-white font-semibold">
-             {activeChat?.title 
-  ? activeChat.title 
-  : activeChat?.localid 
-    ? `Chat ${activeChat.localid}` 
-    : "New Chat"}
-
+              {activeChat?.title || `Chat ${activeChat?.localid || "New"}`}
             </h2>
             <div className="flex items-center space-x-2 text-sm text-gray-400">
               <div className="flex items-center space-x-1">
@@ -154,11 +156,7 @@ const Chat = () => {
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-2">
-            <div
-              className={`flex ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+            <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
                   msg.sender === "user"
