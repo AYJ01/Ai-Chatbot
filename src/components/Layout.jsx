@@ -16,8 +16,8 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Chats', href: '/chats', icon: MessageSquare },
-    { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Chats', href: '/layout/chats', icon: MessageSquare },
+    { name: 'Profile', href: '/layout/profile', icon: User },
   ];
 
   const isActive = (href) => location.pathname === href;
@@ -26,7 +26,7 @@ const Layout = () => {
   // Redirect to login if no active session
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate('/login');
+      navigate('/');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
