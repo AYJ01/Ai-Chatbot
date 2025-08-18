@@ -17,54 +17,39 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Fetch chats once
-  useEffect(() => {
+  // Fetch messages for current chat
+  const fetchMessages = async () => {
     if (!user) return;
+    try {
+      const allChats = await getChats(user);
+      setChats(allChats);
 
-    const fetchChats = async () => {
-      try {
-        await getChats(user, setChats);
-      } catch (err) {
-        console.error("Failed to fetch chats:", err);
+      const currentChat = allChats.find(c => String(c.localid) === String(chatId));
+      if (currentChat && currentChat.messages) {
+        setActiveChat({ title: currentChat.title, localid: chatId });
+        setMessages(
+          currentChat.messages.map(msg => ({
+            id: msg.id,
+            content: msg.message,
+            sender: msg.usertype,
+            reply: msg.reply || null,
+            timestamp: msg.message_time,
+          }))
+        );
+      } else {
+        setMessages([]);
       }
-    };
-
-    fetchChats();
-  }, [user]);
-
-  // Set active chat and messages based on chatId
-  useEffect(() => {
-    if (!chatId || chats.length === 0) return;
-
-    const currentChat = chats.filter((c) => String(c.localid) === String(chatId));
-
-    if (currentChat.length > 0) {
-      // Only update if chat actually changed
-      setActiveChat((prev) => {
-        if (!prev || prev.localid !== chatId) {
-          return { title: currentChat[0].title, localid: chatId };
-        }
-        return prev;
-      });
-
-      const newMessages = currentChat.map((msg) => ({
-        id: msg.id,
-        content: msg.message,
-        sender: msg.usertype,
-        reply: msg.reply || null,
-        timestamp: msg.message_time,
-      }));
-
-      setMessages((prev) => {
-        const prevIds = prev.map((m) => m.id).join(",");
-        const newIds = newMessages.map((m) => m.id).join(",");
-        if (prevIds !== newIds) return newMessages;
-        return prev;
-      });
+    } catch (err) {
+      console.error("Failed to fetch messages:", err);
     }
-  }, [chatId, chats]);
+  };
 
-  // Auto-scroll
+  // Initial fetch
+  useEffect(() => {
+    fetchMessages();
+  }, [chatId, user]);
+
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -83,28 +68,16 @@ const Chat = () => {
     };
 
     // Optimistic UI
-    setMessages((prev) => [...prev, newMsg]);
+    setMessages(prev => [...prev, newMsg]);
     setNewMessage("");
 
     try {
-      const serverResponse = await sendMsg(user, newMessage.trim(), chatId);
-      if (serverResponse) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempId
-              ? {
-                  ...msg,
-                  id: serverResponse.id || tempId,
-                  reply: serverResponse.reply || null,
-                  timestamp: serverResponse.timestamp || msg.timestamp,
-                }
-              : msg
-          )
-        );
-      }
+      await sendMsg(user, newMessage.trim(), chatId);
+      // Refresh messages from server after sending
+      fetchMessages();
     } catch (err) {
       console.error("Failed to send message:", err);
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
     }
   };
 
@@ -126,7 +99,11 @@ const Chat = () => {
           </button>
           <div className="flex-1">
             <h2 className="text-white font-semibold">
-              {activeChat?.title ? activeChat.title : activeChat?.localid ? `Chat ${activeChat.localid}` : "New Chat"}
+              {activeChat?.title
+                ? activeChat.title
+                : activeChat?.localid
+                ? `Chat ${activeChat.localid}`
+                : "New Chat"}
             </h2>
             <div className="flex items-center space-x-2 text-sm text-gray-400">
               <div className="flex items-center space-x-1">
@@ -149,21 +126,16 @@ const Chat = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg) => (
+        {messages.map(msg => (
           <div key={msg.id} className="space-y-2">
             <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                msg.sender === "user"
-                  ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white"
-                  : "bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50"
-              }`}>
+              <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${msg.sender === "user" ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white" : "bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50"}`}>
                 <p className="text-sm leading-relaxed">{msg.content}</p>
                 <p className={`text-xs mt-2 ${msg.sender === "user" ? "text-primary-100" : "text-gray-400"}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
             </div>
-
             {msg.reply && (
               <div className="flex justify-start">
                 <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50">
