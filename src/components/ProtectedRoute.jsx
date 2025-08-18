@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
     return children;
   }
 
-  return <Navigate to="/404" />;
+ 
 };
 
 export default ProtectedRoute;
