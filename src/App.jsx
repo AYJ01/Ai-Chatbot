@@ -12,11 +12,11 @@ function App() {
   return (
        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/404" element={<Error404 />} />
             <Route path="/layout" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              
+              <Route index element={<Navigate to="/chats" replace />} />
               <Route path="/chats" element={<ChatList />} />
               <Route path="chat/:chatId" element={<Chat />} />
               <Route path="profile" element={<Profile />} />
