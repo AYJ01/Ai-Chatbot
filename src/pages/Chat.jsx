@@ -20,18 +20,34 @@ const Chat = () => {
 
   // Fetch chats from server
   useEffect(() => {
-    if (!user) return;
+  if (!user || !chatId) return;
 
-    const fetchChats = async () => {
-      try {
-        await getChats(user, setChats);
-      } catch (err) {
-        console.error("Failed to fetch chats:", err);
+  const fetchData = async () => {
+    try {
+      const allChats = await getChats(user);
+      setChats(allChats);
+
+      const currentChat = allChats.find(c => String(c.localid) === String(chatId));
+      if (currentChat) {
+        setActiveChat({ title: currentChat.title, localid: chatId });
+        setMessages(
+          currentChat.map(msg => ({
+            id: msg.id,
+            content: msg.message,
+            sender: msg.usertype,
+            reply: msg.reply || null,
+            timestamp: msg.message_time,
+          }))
+        );
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch chats/messages:", err);
+    }
+  };
 
-    fetchChats();
-  }, [user]);
+  fetchData();
+}, [user, chatId]);
+
 
   // Set active chat and messages based on chatId
   useEffect(() => {
