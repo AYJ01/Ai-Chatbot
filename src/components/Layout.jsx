@@ -102,7 +102,7 @@ const Layout = () => {
           <button
             onClick={async () => {
               await nhost.auth.signOut();
-              navigate('/login');
+              navigate('/');
             }}
             className="w-full flex items-center px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
           >
