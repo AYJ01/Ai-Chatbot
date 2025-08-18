@@ -1,15 +1,9 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-import { NhostProvider } from '@nhost/react';
-import nhost from './NhostClient';
+import { NhostClient } from '@nhost/react';
 
+const nhost = new NhostClient({
+  subdomain: "iygtokbiutpcogmoptms",
+  region: "ap-south-1",
+  backendUrl: 'https://iygtokbiutpcogmoptms.ap-south-1.nhost.app'
+});
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <NhostProvider nhost={nhost}>
-    <App />
-    </NhostProvider>
-  </StrictMode>,
-)
+export default nhost;
