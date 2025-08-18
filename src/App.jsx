@@ -26,7 +26,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Redirect to chats */}
+          {/* Redirect index to chats */}
           <Route index element={<Navigate to="chats" replace />} />
           <Route path="chats" element={<ChatList />} />
           <Route path="chat/:chatId" element={<Chat />} />
