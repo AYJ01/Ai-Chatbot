@@ -1,20 +1,17 @@
-import { useAuthenticationStatus, useUserData } from '@nhost/react';
-import { useRef } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-  const user = sessionStorage.getItem('user')
-  console.log(user)
+  const storedUser = sessionStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
 
+  // Redirect to login if no user
   if (!user) {
-    return <div>Loading...</div>; 
+    return <Navigate to="/" replace />;
   }
 
-  if (user) {
-    return children;
-  }
-
- 
+  // Else render the children components
+  return children;
 };
 
 export default ProtectedRoute;
