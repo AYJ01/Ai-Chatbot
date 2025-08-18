@@ -17,8 +17,6 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/404" element={<Error404 />} />
 
-        {/* Redirect root to chats */}
-        <Route path="/" element={<Navigate to="/layout/chats" replace />} />
 
         {/* Protected Routes */}
         <Route
