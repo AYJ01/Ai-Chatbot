@@ -23,7 +23,7 @@ const Login = () => {
   useEffect(() => {
     if (isSuccess && !needsEmailVerification && userData) {
       sessionStorage.setItem('user', JSON.stringify(userData));
-      navigate('/layout/chats');
+      navigate('/chats');
     }
   }, [isSuccess, needsEmailVerification, userData, navigate]);
 
