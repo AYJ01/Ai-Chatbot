@@ -98,7 +98,7 @@ const Chat = () => {
       {/* Chat Header */}
       <div className="bg-dark-800/50 backdrop-blur-xl border-b border-gray-700/50 px-6 py-4">
         <div className="flex items-center space-x-4">
-          <button onClick={() => navigate("/layout/chats")} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => navigate("/chats")} className="text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
