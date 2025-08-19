@@ -24,8 +24,7 @@ const Chat = () => {
 
   const fetchData = async () => {
     try {
-      const allChats = await getChats(user);
-      setChats(allChats);
+      const allChats = await getChats(user,setChats);
 
       const currentChat = allChats.find(c => String(c.localid) === String(chatId));
       if (currentChat) {
