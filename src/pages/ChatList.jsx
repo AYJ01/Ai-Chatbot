@@ -52,7 +52,7 @@ const ChatList = () => {
   const handleNewChat = () => {
     console.log("New chat clicked!");
     
-    navigate(`/layout/chat/${num+1}`)
+    navigate(`/chat/${num+1}`)
     // Logic to create a new chat goes here
   };
 
@@ -83,7 +83,7 @@ const ChatList = () => {
           {chatList.map((chat) => (
             <div
               key={chat.localid}
-              onClick={() => navigate(`/layout/chat/${chat.localid}`)}
+              onClick={() => navigate(`/chat/${chat.localid}`)}
               className="bg-dark-800/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-4 cursor-pointer hover:bg-dark-700/50"
             >
               <div className="flex items-start justify-between">
