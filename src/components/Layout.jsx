@@ -26,7 +26,7 @@ const Layout = () => {
   // Redirect to login if no active session
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate('/login');
+      navigate('/');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -101,9 +101,12 @@ const Layout = () => {
           </div>
           <button
             onClick={async () => {
-              await nhost.auth.signOut();
-              navigate('/login');
-            }}
+
+  await nhost.auth.signOut();
+  sessionStorage.removeItem("user");
+  navigate('/');
+}}
+
             className="w-full flex items-center px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3" />
