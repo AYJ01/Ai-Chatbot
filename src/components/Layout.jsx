@@ -1,202 +1,141 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Send, ArrowLeft, Shield, Lock } from "lucide-react";
-import getChats from "../getChats.cjs";
-import sendMsg from "../sendMsg.cjs";
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { MessageSquare, User, LogOut, Shield, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNhostClient, useUserData, useAuthenticationStatus, useAccessToken } from '@nhost/react';
 
-const Chat = () => {
-  const { chatId } = useParams();
+const Layout = () => {
+  const user = useUserData(); // User profile info
+  const nhost = useNhostClient();
+
+  const { isAuthenticated, isLoading } = useAuthenticationStatus();
+  const accessToken = useAccessToken(); // Current session JWT
+
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const storedUser = sessionStorage.getItem("user");
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [chats, setChats] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
-  const [newMessage, setNewMessage] = useState("");
-  const messagesEndRef = useRef(null);
+  const navigation = [
+    { name: 'Chats', href: '/chats', icon: MessageSquare },
+    { name: 'Profile', href: '/profile', icon: User },
+  ];
 
-  // Fetch chats & messages
-  const fetchMessages = async () => {
-    if (!user) return;
-    try {
-      const allChats = await getChats(user);
-      setChats(allChats);
+  const isActive = (href) => location.pathname === href;
+  const userAvatar = user?.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
-      const currentChat = allChats.find((c) => String(c.localid) === String(chatId));
-      if (currentChat) {
-        setActiveChat({ title: currentChat.title, localid: chatId });
-        setMessages(
-          currentChat.map((msg) => ({
-            id: msg.id,
-            content: msg.message,
-            sender: msg.usertype,
-            reply: msg.reply || null,
-            timestamp: msg.message_time,
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
+  // Redirect to login if no active session
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
     }
-  };
-
-  // Initial fetch
-  useEffect(() => {
-    fetchMessages();
-  }, [chatId, user]);
-
-  // Optional: live polling every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, [chatId, user]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user) return;
-
-    const tempId = Date.now().toString();
-    const newMsg = {
-      id: tempId,
-      content: newMessage,
-      sender: "user",
-      reply: null,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Optimistic UI
-    setMessages((prev) => [...prev, newMsg]);
-    setNewMessage("");
-
-    try {
-      await sendMsg(user, newMessage.trim(), chatId);
-      // Refresh messages from server after sending
-      fetchMessages();
-    } catch (err) {
-      console.error("Failed to send message:", err);
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-gray-400">User not found. Please login again.</p>
-      </div>
-    );
-  }
+  }, [isAuthenticated, isLoading, navigate]);
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Chat Header */}
-      <div className="bg-dark-800/50 backdrop-blur-xl border-b border-gray-700/50 px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate("/chats")} className="text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-white font-semibold">
-              {activeChat?.title
-                ? activeChat.title
-                : activeChat?.localid
-                ? `Chat ${activeChat.localid}`
-                : "New Chat"}
-            </h2>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <div className="flex items-center space-x-1">
-                <Shield className="w-3 h-3 text-green-400" />
-                <span>End-to-end encrypted</span>
-              </div>
-              <span>•</span>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>Online</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
-            <Lock className="w-3 h-3 text-green-400" />
-            <span className="text-xs text-green-400">Secure</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg) => (
-          <div key={msg.id} className="space-y-2">
-            <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                  msg.sender === "user"
-                    ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white"
-                    : "bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50"
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-dark-800/90 backdrop-blur-xl border-r border-gray-700/50 transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700/50">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-white">SecureChat</h1>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-gray-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Navigation Links */}
+        <div className="flex-1 px-4 py-6">
+          <nav className="space-y-2">
+            {navigation.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => {
+                  navigate(item.href);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  isActive(item.href)
+                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                <p className="text-sm leading-relaxed">{msg.content}</p>
-                <p
-                  className={`text-xs mt-2 ${msg.sender === "user" ? "text-primary-100" : "text-gray-400"}`}
-                >
-                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-            </div>
+                <item.icon className="w-5 h-5 mr-3" />
+                {item.name}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-            {msg.reply && (
-              <div className="flex justify-start">
-                <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-dark-800/70 backdrop-blur-sm text-gray-100 border border-gray-700/50">
-                  <p className="text-sm leading-relaxed">{msg.reply}</p>
-                  <p className="text-xs mt-2 text-gray-400">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Message Input */}
-      <div className="border-t border-gray-700/50 p-6">
-        <form onSubmit={handleSendMessage} className="flex space-x-4">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your secure message..."
-              className="w-full px-4 py-3 bg-dark-800/50 backdrop-blur-sm border border-gray-600 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        {/* User Profile & Logout */}
+        <div className="border-t border-gray-700/50 p-4">
+          <div className="flex items-center space-x-3 mb-4">
+            <img
+              src={userAvatar}
+              alt={user?.displayName || 'User Avatar'}
+              className="w-10 h-10 rounded-full border-2 border-primary-500/30"
             />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <Shield className="w-3 h-3 text-green-400" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.displayName || 'Guest User'}
+              </p>
+              <p className="text-xs text-gray-400 truncate">{user?.email || ''}</p>
             </div>
           </div>
           <button
-            type="submit"
-            disabled={!newMessage.trim()}
-            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-3 rounded-full hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+            onClick={async () => {
+              await nhost.auth.signOut();
+              navigate('/login');
+            }}
+            className="w-full flex items-center px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
           >
-            <Send className="w-5 h-5" />
+            <LogOut className="w-4 h-4 mr-3" />
+            Sign out
           </button>
-        </form>
-        <div className="flex items-center justify-center mt-3 text-xs text-gray-500 space-x-2">
-          <Lock className="w-3 h-3" />
-          <span>Messages are encrypted and secure</span>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:pl-64">
+        <div className="h-16 bg-dark-800/50 backdrop-blur-xl border-b border-gray-700/50 flex items-center justify-between px-6 lg:px-8">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden text-gray-400 hover:text-white"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm text-gray-300">End-to-end encrypted</span>
+          </div>
+        </div>
+
+        <div className="flex-1">
+          {/* Debug session (optional) */}
+          {/* <pre className="text-gray-400 text-xs p-4">{accessToken}</pre> */}
+          <Outlet />
         </div>
       </div>
     </div>
   );
 };
 
-export default Chat;
+export default Layout;
