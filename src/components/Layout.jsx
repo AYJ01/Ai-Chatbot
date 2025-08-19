@@ -16,8 +16,8 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Chats', href: '/chats', icon: MessageSquare },
-    { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Chats', href: '/layout/chats', icon: MessageSquare },
+    { name: 'Profile', href: '/layout/profile', icon: User },
   ];
 
   const isActive = (href) => location.pathname === href;
