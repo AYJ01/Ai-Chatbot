@@ -12,30 +12,31 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
-        <Route path="" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/404" element={<Error404 />} />
+  {/* Public Routes */}
+  <Route path="/" element={<Login />} />
+  <Route path="/signup" element={<Signup />} />
+  <Route path="/404" element={<Error404 />} />
 
-        {/* Protected Routes */}
-        <Route
-          path="/layout"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          {/* Redirect index to chats */}
-          <Route index element={<Navigate to="/chats" replace />} />
-          <Route path="/chats" element={<ChatList />} />
-          <Route path="/chat/:chatId" element={<Chat />} />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
+  {/* Protected Routes with Layout */}
+  <Route
+    path="/layout"
+    element={
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    }
+  >
+    {/* Relative paths for children */}
+    <Route index element={<Navigate to="chats" replace />} />  {/* /layout → /layout/chats */}
+    <Route path="chats" element={<ChatList />} />               {/* /layout/chats */}
+    <Route path="chat/:chatId" element={<Chat />} />           {/* /layout/chat/:chatId */}
+    <Route path="profile" element={<Profile />} />             {/* /layout/profile */}
+  </Route>
 
-        {/* Catch-all → 404 */}
-        <Route path="*" element={<Navigate to="/404" replace />} />
-      </Routes>
+  {/* Catch-all → 404 */}
+  <Route path="*" element={<Navigate to="/404" replace />} />
+</Routes>
+
     </BrowserRouter>
   );
 }
